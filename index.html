@@ -258,6 +258,12 @@ document.dispatchEvent(new Event('firebase-ready'));
   .waiting-next { text-align: center; padding: 60px 20px; }
   .waiting-next .big-icon { font-size: 56px; margin-bottom: 16px; }
 
+  /* HOST SPECTATOR VIEW */
+  .host-view-panel { background: rgba(245,230,66,.05); border: 1px dashed var(--yellow); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; }
+  .host-view-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--yellow); font-weight: 700; margin-bottom: 8px; }
+  .host-view-answer { font-size: 24px; font-weight: 700; color: var(--green); }
+  .host-view-opts { margin-top: 10px; font-size: 13px; color: var(--muted); }
+
   @media (max-width: 600px) {
     .options-grid { grid-template-columns: 1fr; }
     .game-grid { grid-template-columns: 1fr 1fr; }
@@ -706,20 +712,31 @@ const GAME_DEFS = [
 
 // Generate a set of N distinct questions for a quiz-type game.
 // Skill games (reaction, rhyme_chain) always return a single-item set.
+// Guarantees at least MIN_QUESTIONS (3) per round for all other types.
+const MIN_QUESTIONS = 3;
 function generateQuestionSet(def, n) {
   if (NO_REPEAT_TYPES.includes(def.type)) {
     return [def.generate()];
   }
+  const target = Math.max(n, MIN_QUESTIONS);
   const set = [];
   const seen = new Set();
   let guard = 0;
-  while (set.length < n && guard < n * 12) {
+  // First pass: try to get unique questions by question text
+  while (set.length < target && guard < target * 15) {
     guard++;
     const q = def.generate();
     const key = q.question;
     if (!seen.has(key)) {
       seen.add(key);
       set.push(q);
+    }
+  }
+  // Safety: if bank too small and we still don't have MIN_QUESTIONS,
+  // allow duplicates to fill up to MIN_QUESTIONS
+  if (set.length < MIN_QUESTIONS) {
+    while (set.length < MIN_QUESTIONS) {
+      set.push(def.generate());
     }
   }
   return set;
@@ -824,6 +841,10 @@ const WHO_AM_I = [
   {question:'I was the first woman to win a Nobel Prize — actually I won two! Who am I?',answer:'CURIE'},
   {question:'I wrote "Romeo and Juliet" and "Hamlet." I was born in 1564. Who am I?',answer:'SHAKESPEARE'},
   {question:'I am an American civil rights leader who gave the "I Have a Dream" speech. Who am I?',answer:'KING'},
+  {question:'I was the first person to walk on the Moon in 1969. Who am I?',answer:'ARMSTRONG'},
+  {question:'I invented the telephone in 1876. I was born in Scotland. Who am I?',answer:'BELL'},
+  {question:'I was the first female Prime Minister of the United Kingdom. Who am I?',answer:'THATCHER'},
+  {question:'I wrote "The Origin of Species" and developed the theory of evolution. Who am I?',answer:'DARWIN'},
 ];
 
 const ODD_ONE_OUT = [
@@ -846,6 +867,10 @@ const SERIES = [
   {question:'What comes next? 3, 6, 9, 12, __',options:['15','16','14','18'],answer:'15'},
   {question:'Complete: A, C, E, G, __',options:['I','H','J','K'],answer:'I'},
   {question:'What comes next? 1, 4, 9, 16, 25, __',options:['36','30','32','49'],answer:'36'},
+  {question:'What comes next? 5, 10, 20, 40, __',options:['80','60','50','70'],answer:'80'},
+  {question:'What comes next? 1, 3, 6, 10, 15, __',options:['21','18','20','25'],answer:'21'},
+  {question:'Complete: Spring, Summer, Autumn, __',options:['Winter','Rain','Snow','Frost'],answer:'Winter'},
+  {question:'What comes next? 64, 32, 16, 8, __',options:['4','6','2','0'],answer:'4'},
 ];
 
 const EMOJI_MOVIES = [
@@ -857,6 +882,10 @@ const EMOJI_MOVIES = [
   {question:'⚫🔵🌀💥',options:['Interstellar','Inception','Gravity','The Matrix'],answer:'Inception'},
   {question:'🧙‍♂️💍🔥',options:['Lord of the Rings','Harry Potter','Narnia','The Hobbit'],answer:'Lord of the Rings'},
   {question:'🦈🌊😱',options:['Jaws','The Meg','Deep Blue Sea','Orca'],answer:'Jaws'},
+  {question:'👻🏠😱',options:['Ghostbusters','Beetlejuice','Haunted Mansion','Poltergeist'],answer:'Ghostbusters'},
+  {question:'🦴🐶❤️',options:['Bolt','101 Dalmatians','Lady and the Tramp','Lassie'],answer:'101 Dalmatians'},
+  {question:'🧸🐻🏠',options:['Paddington','Brother Bear','Ted','Brave'],answer:'Paddington'},
+  {question:'🌪️👠🐕🧙',options:['Wizard of Oz','Wicked','Alice in Wonderland','Cinderella'],answer:'Wizard of Oz'},
 ];
 
 const ANIMALS = [
@@ -867,6 +896,11 @@ const ANIMALS = [
   {question:'I have the longest gestation period of any land animal (22 months). Who am I?',options:['Elephant','Giraffe','Rhino','Hippo'],answer:'Elephant'},
   {question:'I am a black and white bear that eats bamboo. Who am I?',options:['Giant Panda','Polar Bear','Spectacled Bear','Sun Bear'],answer:'Giant Panda'},
   {question:'I am the only mammal capable of sustained flight. Who am I?',options:['Bat','Flying Squirrel','Sugar Glider','Flying Fox'],answer:'Bat'},
+  {question:'I am the tallest living animal on Earth. Who am I?',options:['Giraffe','Elephant','Camel','Horse'],answer:'Giraffe'},
+  {question:'I have the largest brain of any animal. Who am I?',options:['Sperm Whale','Elephant','Dolphin','Gorilla'],answer:'Sperm Whale'},
+  {question:'I sleep for up to 22 hours a day and eat eucalyptus. Who am I?',options:['Koala','Sloth','Panda','Opossum'],answer:'Koala'},
+  {question:'I am the most venomous snake in the world. Who am I?',options:['Inland Taipan','Black Mamba','King Cobra','Rattlesnake'],answer:'Inland Taipan'},
+  {question:'I can change colour to match my surroundings. Who am I?',options:['Chameleon','Octopus','Flounder','Cuttlefish'],answer:'Chameleon'},
 ];
 
 const WORLD_RECORDS = [
@@ -907,6 +941,12 @@ const RHYMES = [
   {clue:'Rhymes with BOOK and is something you can do with your eyes.',answer:'Look',wrong:['Cook','Hook','Took']},
   {clue:'Rhymes with TREE and means to be without cost.',answer:'Free',wrong:['See','Bee','Key']},
   {clue:'Rhymes with STAR and means going very far.',answer:'Far',wrong:['Bar','Car','Jar']},
+  {clue:'Rhymes with CAKE and means to tremble or shiver.',answer:'Shake',wrong:['Lake','Make','Rake']},
+  {clue:'Rhymes with LIGHT and means to struggle or battle.',answer:'Fight',wrong:['Sight','Kite','Bite']},
+  {clue:'Rhymes with COLD and means something that is very old.',answer:'Old',wrong:['Bold','Fold','Told']},
+  {clue:'Rhymes with HEAT and means to defeat someone in a game.',answer:'Beat',wrong:['Seat','Meat','Feat']},
+  {clue:'Rhymes with RING and means a ruler or monarch.',answer:'King',wrong:['Sing','Wing','Thing']},
+  {clue:'Rhymes with CLOCK and means the solid material buildings are made of.',answer:'Rock',wrong:['Sock','Lock','Dock']},
 ];
 
 const WORDS = ['PYTHON','GARDEN','PURPLE','BRIDGE','TRAVEL','JUNGLE','FROZEN','BRANCH','CLEVER','PLANET','MIRROR','CASTLE','FINGER','WINDOW','STREAM','FLIGHT','SPRING','MARBLE','SILVER','FLOWER'];
@@ -1059,9 +1099,26 @@ function onMessage(e) {
       updateScorebar();
       if(STATE.isHost) renderAdminPanel();
       break;
+    case 'TIMER_SYNC':
+      // Non-hosts (and host itself, ignored since host already called _runTimer)
+      if (!STATE.isHost) {
+        _runTimer(data.startedAt, data.totalSecs);
+      }
+      break;
     case 'TIMEOUT':
-      clearTimer();
-      showFeedback('TIME!','timeout');
+      // Non-hosts: stop timer, show answer, show feedback
+      if (!STATE.isHost) {
+        clearTimer();
+        const q = currentQuestion();
+        if (q && q.answer) {
+          const rev = document.createElement('div');
+          rev.className = 'answer-reveal';
+          rev.textContent = `⏰ Answer: ${q.answer}`;
+          const body = document.getElementById('q-body');
+          if (body) body.appendChild(rev);
+        }
+        showFeedback('TIME!', 'timeout');
+      }
       break;
     case 'GAME_OVER':
       showResults();
@@ -1202,8 +1259,13 @@ function loadQuestion() {
   STATE.buzzedBy = null;
   clearTimer();
   hideHostQuestionControls();
-  if(STATE.isHost) {
+  if (STATE.isHost) {
     broadcast('LOAD_QUESTION', { gameIdx: STATE.currentGameIdx, qIdx: STATE.currentQIdx });
+    // Small delay so Firebase delivers LOAD_QUESTION before TIMER_SYNC
+    setTimeout(() => {
+      const game = currentGame();
+      if (game) startTimer(game.time || 30);
+    }, 300);
   }
   renderQuestionUI();
 }
@@ -1264,16 +1326,54 @@ function renderQuestionUI() {
   }
 
   switch(game.type) {
-    case 'mcq': renderMCQ(body, q); break;
-    case 'tf': renderMCQ(body, q); break;
-    case 'type': renderType(body, q); break;
-    case 'buzz': renderBuzz(body, q); break;
-    case 'reaction': renderReaction(body, q); break;
-    case 'rhyme_chain': renderType(body, q); break;
+    case 'mcq': STATE.isHost ? renderHostView(body, q) : renderMCQ(body, q); break;
+    case 'tf':  STATE.isHost ? renderHostView(body, q) : renderMCQ(body, q); break;
+    case 'type': STATE.isHost ? renderHostView(body, q) : renderType(body, q); break;
+    case 'buzz': STATE.isHost ? renderHostBuzzView(body, q) : renderBuzz(body, q); break;
+    case 'reaction': STATE.isHost ? renderHostView(body, q) : renderReaction(body, q); break;
+    case 'rhyme_chain': STATE.isHost ? renderHostView(body, q) : renderType(body, q); break;
   }
 
   updateScorebar();
-  startTimer(game.time || 30);
+  // Host always sees Next Question controls immediately (they spectate, not play)
+  if (STATE.isHost) showHostQuestionControls();
+  // Timer is started by host via broadcast('TIMER_SYNC') in loadQuestion()
+  // Non-hosts receive TIMER_SYNC event and call _runTimer() from onMessage
+}
+
+// ── HOST SPECTATOR VIEWS ─────────────────────────────────
+// Host sees the question + correct answer for reference,
+// but has no interactive answer controls.
+function renderHostView(body, q) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'background:rgba(245,230,66,.05);border:1px dashed var(--yellow);border-radius:12px;padding:18px 20px;';
+  wrap.innerHTML = `
+    <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--yellow);font-weight:700;margin-bottom:10px">👑 HOST VIEW — Answer</div>
+    <div style="font-size:22px;font-weight:700;color:var(--green)">${q.answer || '—'}</div>
+    ${q.options ? `<div style="margin-top:12px;font-size:13px;color:var(--muted)">Options: ${q.options.join(' · ')}</div>` : ''}
+  `;
+  body.appendChild(wrap);
+  const hint = document.createElement('div');
+  hint.style.cssText = 'margin-top:14px;font-size:13px;color:var(--muted);text-align:center';
+  hint.textContent = 'Players are answering — use the Next Question → button when ready';
+  body.appendChild(hint);
+}
+
+function renderHostBuzzView(body, q) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'background:rgba(245,230,66,.05);border:1px dashed var(--yellow);border-radius:12px;padding:18px 20px;';
+  wrap.innerHTML = `
+    <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--yellow);font-weight:700;margin-bottom:10px">👑 HOST VIEW — Answer</div>
+    <div style="font-size:22px;font-weight:700;color:var(--green)">${q.answer || '—'}</div>
+    <div style="margin-top:12px;font-size:13px;color:var(--muted)">Options: ${(q.options||[]).join(' · ')}</div>
+  `;
+  body.appendChild(wrap);
+  // Show who buzzed in real time (populated by BUZZ_IN handler)
+  const buzzStatus = document.createElement('div');
+  buzzStatus.id = 'buzz-who';
+  buzzStatus.style.cssText = 'margin-top:16px;font-size:20px;font-weight:700;color:var(--coral);text-align:center';
+  buzzStatus.textContent = 'Waiting for first buzz…';
+  body.appendChild(buzzStatus);
 }
 
 function renderMCQ(body, q) {
@@ -1445,45 +1545,67 @@ function renderReaction(body, q) {
 }
 
 // ======================================================
-// TIMER
+// TIMER — synced via Firebase
+// Host broadcasts TIMER_SYNC {startedAt (ms), totalSecs}
+// All clients compute timeLeft from Date.now() - startedAt
+// so every device shows the same countdown regardless of
+// when they received the event.
 // ======================================================
 function startTimer(secs) {
-  STATE.timeLeft = secs;
+  clearTimer();
+  if (STATE.isHost) {
+    // Host broadcasts the absolute start time
+    const startedAt = Date.now();
+    broadcast('TIMER_SYNC', { startedAt, totalSecs: secs });
+    _runTimer(startedAt, secs);
+  }
+  // Non-hosts start their timer when they receive TIMER_SYNC (see onMessage)
+}
+
+function _runTimer(startedAt, totalSecs) {
+  STATE.timerTotal = totalSecs;
+  STATE.timerStart = startedAt;
   const arc = document.getElementById('timer-arc');
   const txt = document.getElementById('timer-text');
   const circ = 2 * Math.PI * 28;
   arc.style.strokeDasharray = circ;
-  arc.style.strokeDashoffset = 0;
 
   clearInterval(STATE.timerInterval);
-  STATE.timerInterval = setInterval(()=>{
-    STATE.timeLeft--;
-    txt.textContent = STATE.timeLeft;
-    const offset = circ * (1 - STATE.timeLeft/secs);
-    arc.style.strokeDashoffset = offset;
-    if(STATE.timeLeft <= 5) arc.style.stroke='var(--coral)';
-    else arc.style.stroke='var(--yellow)';
+  STATE.timerInterval = setInterval(() => {
+    const elapsed = (Date.now() - startedAt) / 1000;
+    const left = Math.max(0, Math.ceil(totalSecs - elapsed));
+    STATE.timeLeft = left;
 
-    if(STATE.timeLeft <= 0) {
+    txt.textContent = left;
+    arc.style.strokeDashoffset = circ * (elapsed / totalSecs);
+    arc.style.stroke = left <= 5 ? 'var(--coral)' : 'var(--yellow)';
+
+    if (left <= 0) {
       clearInterval(STATE.timerInterval);
-      if(!STATE.answered) {
-        STATE.answered=true;
-        broadcast('TIMEOUT');
-        const q=currentQuestion();
-        if(q && q.answer) {
-          const rev=document.createElement('div');
-          rev.className='answer-reveal';
-          rev.textContent=`⏰ Answer: ${q.answer}`;
-          document.getElementById('q-body').appendChild(rev);
+      if (!STATE.answered) {
+        STATE.answered = true;
+        // Only host broadcasts TIMEOUT to avoid duplicate events
+        if (STATE.isHost) {
+          broadcast('TIMEOUT');
+          const q = currentQuestion();
+          if (q && q.answer) {
+            const rev = document.createElement('div');
+            rev.className = 'answer-reveal';
+            rev.textContent = `⏰ Answer: ${q.answer}`;
+            const body = document.getElementById('q-body');
+            if (body) body.appendChild(rev);
+          }
+          showHostQuestionControls();
         }
-        showFeedback('TIME!','timeout');
-        if(STATE.isHost) showHostQuestionControls();
+        showFeedback('TIME!', 'timeout');
       }
     }
-  },1000);
+  }, 250); // poll at 250ms so display stays smooth
 }
 
-function clearTimer() { clearInterval(STATE.timerInterval); }
+function clearTimer() {
+  clearInterval(STATE.timerInterval);
+}
 
 // ======================================================
 // HOST ADVANCE LOGIC — moves to next question within a
