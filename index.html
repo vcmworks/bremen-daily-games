@@ -4,6 +4,39 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BLITZ — Minute to Win It</title>
+<!-- Firebase SDK -->
+<script type="module">
+// ============================================================
+// PASTE YOUR FIREBASE CONFIG HERE
+// Get it from: Firebase Console → Project Settings → Your Apps
+// ============================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js";
+import { getDatabase, ref, set, onValue, update, remove, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyAupOwikizXaKEW3Pv0hlC0V9o-IjZ0etQ",
+  authDomain:        "bremen-party-game.firebaseapp.com",
+  databaseURL:       "https://bremen-party-game-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "bremen-party-game",
+  storageBucket:     "bremen-party-game.firebasestorage.app",
+  messagingSenderId: "349483602071",
+  appId:             "1:349483602071:web:b37d12fd4c1383aa9119d2",
+  measurementId:     "G-GJZ5B9FRVD"
+};
+
+// ── Init ──────────────────────────────────────────────────
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+try { getAnalytics(app); } catch(e) {} // Analytics is optional, won't break if blocked
+
+// Expose Firebase helpers to the global scope so the
+// non-module game script below can call them.
+window._FB = { db, ref, set, onValue, update, remove, serverTimestamp };
+window._firebaseReady = true;
+document.dispatchEvent(new Event('firebase-ready'));
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -237,6 +270,10 @@
 
   <!-- ===== WELCOME ===== -->
   <div id="welcome-screen" class="screen active">
+    <div id="fb-banner" style="background:rgba(255,77,109,.12);border:1px solid var(--coral);border-radius:10px;padding:12px 18px;margin-bottom:20px;color:var(--coral);font-size:13px;font-weight:600;display:none">
+      ⚠️ Cannot connect to Firebase — check your database URL or database rules.
+      <a href="https://console.firebase.google.com" target="_blank" style="color:var(--yellow);margin-left:6px">Open Firebase Console →</a>
+    </div>
     <div class="logo">BLITZ</div>
     <div class="tagline">Minute to Win It — Group Edition</div>
     <div class="card">
@@ -245,13 +282,16 @@
           <div class="label">Your Name</div>
           <input type="text" id="player-name" placeholder="Enter your name" maxlength="20">
         </div>
+        <div id="fb-status" style="font-size:12px;color:var(--muted);text-align:center">
+          Connecting to Firebase<span class="waiting-dots"></span>
+        </div>
         <div class="row">
-          <button class="btn btn-primary btn-full" onclick="showHostSetup()">🎮 Host Game</button>
-          <button class="btn btn-ghost btn-full" onclick="showJoin()">🔗 Join Game</button>
+          <button class="btn btn-primary btn-full" id="btn-host" onclick="showHostSetup()" disabled>🎮 Host Game</button>
+          <button class="btn btn-ghost btn-full" id="btn-join" onclick="showJoin()" disabled>🔗 Join Game</button>
         </div>
       </div>
     </div>
-    <div class="dimmed mt16">Works on the same browser or network tab — share your Room Code!</div>
+    <div class="dimmed mt16">Share your Room Code with friends — works anywhere in the world!</div>
   </div>
 
   <!-- ===== HOST SETUP ===== -->
@@ -399,7 +439,6 @@ const STATE = {
   timeLeft: 60,
   answered: false,
   buzzedBy: null,
-  channel: null,
   reactionStart: 0,
   questionsPerRound: 4, // how many questions per quiz-type game (3-5)
 };
@@ -882,19 +921,85 @@ function genId() { return Math.random().toString(36).slice(2,10); }
 function genCode() { const words=['TIGER','BLAZE','NOVA','STORM','PIXEL','HYPER','TURBO','FLASH','RAPID','SONIC']; return RAND(words)+String(RN(10,99)); }
 
 // ======================================================
-// BROADCAST CHANNEL (local network = same-origin tabs)
+// FIREBASE REALTIME DATABASE — replaces BroadcastChannel
+// All game state lives at: /rooms/{roomCode}/
+//
+// Schema:
+//   /rooms/{code}/state      → full game state snapshot (host writes)
+//   /rooms/{code}/events     → append-only event log (any player writes)
+//   /rooms/{code}/players    → {id: {name, score}}
 // ======================================================
+
+let _roomRef   = null;   // ref to /rooms/{code}
+let _eventsRef = null;   // ref to /rooms/{code}/events
+let _eventSeq  = 0;      // monotonic counter so events are unique
+let _unsubState   = null;
+let _unsubEvents  = null;
+let _lastEventKey = null; // ignore events we already processed
+
+function _fb() {
+  if (!window._FB) throw new Error('Firebase not ready yet');
+  return window._FB;
+}
+
 function initChannel(code) {
-  if(STATE.channel) STATE.channel.close();
-  STATE.channel = new BroadcastChannel('blitz_' + code);
-  STATE.channel.onmessage = onMessage;
+  const { db, ref, onValue } = _fb();
+  _roomRef   = ref(db, `rooms/${code}`);
+  _eventsRef = ref(db, `rooms/${code}/events`);
+
+  // Unsubscribe any previous listeners
+  if (_unsubState)  _unsubState();
+  if (_unsubEvents) _unsubEvents();
+
+  // ── Watch /rooms/{code}/events ──────────────────────
+  // Each event is {type, from, name, data, seq}
+  // We process events in order; ignore ones we sent ourselves
+  // (the host reads its own broadcast via the same listener so
+  //  host effects run once, consistently with everyone else)
+  let _seenKeys = new Set();
+
+  _unsubEvents = onValue(_eventsRef, (snap) => {
+    if (!snap.exists()) return;
+    const events = snap.val();
+    // Sort by seq so we process in order
+    const sorted = Object.entries(events)
+      .map(([k,v]) => ({k,...v}))
+      .sort((a,b) => (a.seq||0) - (b.seq||0));
+
+    for (const ev of sorted) {
+      if (_seenKeys.has(ev.k)) continue;
+      _seenKeys.add(ev.k);
+      // Skip our own non-host events (host always processes all)
+      onMessage({ data: { type: ev.type, from: ev.from, name: ev.name, data: ev.data } });
+    }
+  });
 }
 
+// broadcast() — writes an event to /rooms/{code}/events/{seq}
 function broadcast(type, data={}) {
-  if(!STATE.channel) return;
-  STATE.channel.postMessage({ type, from: STATE.myId, name: STATE.myName, data });
+  const { db, ref, set } = _fb();
+  _eventSeq++;
+  const key = `${Date.now()}_${_eventSeq}_${STATE.myId.slice(0,4)}`;
+  set(ref(db, `rooms/${STATE.roomCode}/events/${key}`), {
+    type,
+    from: STATE.myId,
+    name: STATE.myName,
+    data,
+    seq: _eventSeq
+  });
 }
 
+// cleanRoom() — called on page unload or when host ends game
+function cleanRoom() {
+  if (!STATE.roomCode) return;
+  try {
+    const { db, ref, remove } = _fb();
+    remove(ref(db, `rooms/${STATE.roomCode}`));
+  } catch(e) {}
+}
+window.addEventListener('beforeunload', () => { if(STATE.isHost) cleanRoom(); });
+
+// ── Message handler (same as before, reads from Firebase events) ──
 function onMessage(e) {
   const {type, from, name, data} = e.data;
   switch(type) {
@@ -906,9 +1011,12 @@ function onMessage(e) {
       }
       break;
     case 'PLAYER_LIST':
-      STATE.players = data.players;
-      if(data.gameQueue) STATE.gameQueue = data.gameQueue;
-      updateLobbyUI();
+      // Only non-hosts update from this
+      if(!STATE.isHost) {
+        STATE.players = data.players;
+        if(data.gameQueue) STATE.gameQueue = data.gameQueue;
+        updateLobbyUI();
+      }
       break;
     case 'START_GAME':
       STATE.gameQueue = data.gameQueue;
@@ -916,17 +1024,20 @@ function onMessage(e) {
       STATE.currentQIdx = 0;
       showScreen('game-screen');
       loadQuestion();
-      renderAdminPanel();
+      if(STATE.isHost) {
+        document.getElementById('admin-toggle-btn').style.display = 'flex';
+        renderAdminPanel();
+      }
       break;
     case 'LOAD_QUESTION':
       STATE.currentGameIdx = data.gameIdx;
-      STATE.currentQIdx = data.qIdx;
+      STATE.currentQIdx    = data.qIdx;
       clearTimer();
-      STATE.answered = false;
-      STATE.buzzedBy = null;
+      STATE.answered  = false;
+      STATE.buzzedBy  = null;
       hideHostQuestionControls();
       renderQuestionUI();
-      renderAdminPanel();
+      if(STATE.isHost) renderAdminPanel();
       break;
     case 'WAITING_FOR_HOST':
       showWaitingForHost(data.message);
@@ -935,7 +1046,7 @@ function onMessage(e) {
       if(STATE.players[from]) STATE.players[from].score = (STATE.players[from].score||0) + data.points;
       if(from === STATE.myId) showFeedback('CORRECT!','correct');
       updateScorebar();
-      renderAdminPanel();
+      if(STATE.isHost) renderAdminPanel();
       break;
     case 'ANSWER_WRONG':
       if(from === STATE.myId) showFeedback('WRONG!','wrong');
@@ -946,7 +1057,7 @@ function onMessage(e) {
     case 'REACTION_SCORE':
       if(STATE.players[from]) STATE.players[from].score = (STATE.players[from].score||0) + data.points;
       updateScorebar();
-      renderAdminPanel();
+      if(STATE.isHost) renderAdminPanel();
       break;
     case 'TIMEOUT':
       clearTimer();
@@ -1542,6 +1653,42 @@ function playAgain() {
     document.getElementById('lobby-waiting').style.display='block';
   }
 }
+
+// ======================================================
+// FIREBASE READINESS — unlock UI once SDK is initialised
+// ======================================================
+function onFirebaseReady() {
+  // Check if config is still placeholder
+  try {
+    const testRef = window._FB.ref(window._FB.db, '.info/connected');
+    document.getElementById('fb-status').textContent = '✅ Connected — ready to play!';
+    document.getElementById('fb-status').style.color = 'var(--green)';
+    document.getElementById('btn-host').disabled = false;
+    document.getElementById('btn-join').disabled = false;
+
+    // Monitor actual connection state
+    window._FB.onValue(testRef, (snap) => {
+      const connected = snap.val();
+      const statusEl = document.getElementById('fb-status');
+      if (statusEl) {
+        statusEl.textContent = connected ? '✅ Connected' : '⚠️ Reconnecting…';
+        statusEl.style.color = connected ? 'var(--green)' : 'var(--coral)';
+      }
+    });
+  } catch(e) {
+    // Config still has placeholder values
+    document.getElementById('fb-banner').style.display = 'block';
+    document.getElementById('fb-status').textContent = '❌ Firebase not configured';
+    document.getElementById('fb-status').style.color = 'var(--coral)';
+  }
+}
+
+if (window._firebaseReady) {
+  onFirebaseReady();
+} else {
+  document.addEventListener('firebase-ready', onFirebaseReady);
+}
 </script>
 </body>
 </html>
+
