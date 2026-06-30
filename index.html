@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLITZ — Minute to Win It</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a0e1a;
+    --navy2: #111827;
+    --navy3: #1e2d45;
+    --yellow: #f5e642;
+    --coral: #ff4d6d;
+    --green: #00e5a0;
+    --purple: #9b5de5;
+    --blue: #00b4d8;
+    --white: #f0f4ff;
+    --muted: #6b7a99;
+    --card: #141c2e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--navy); color: var(--white); font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  /* ---- LOBBY ---- */
+  #app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  .screen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .screen.active { display: flex; }
+
+  /* HEADER */
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: clamp(56px, 12vw, 120px); letter-spacing: 4px; line-height: 1; background: linear-gradient(135deg, var(--yellow) 0%, var(--coral) 60%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .tagline { color: var(--muted); font-size: 14px; letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; margin-bottom: 40px; }
+
+  /* CARDS */
+  .card { background: var(--card); border: 1px solid #1e2d45; border-radius: 16px; padding: 28px; width: 100%; max-width: 480px; }
+  .card h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--yellow); }
+
+  /* INPUTS */
+  input[type=text] { width: 100%; background: var(--navy3); border: 1px solid #2a3a55; border-radius: 10px; padding: 14px 16px; color: var(--white); font-size: 16px; font-family: 'Inter', sans-serif; outline: none; transition: border-color .2s; }
+  input[type=text]:focus { border-color: var(--yellow); }
+  input[type=text]::placeholder { color: var(--muted); }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border-radius: 10px; border: none; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px; transition: transform .15s, box-shadow .15s; }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--yellow); color: var(--navy); }
+  .btn-primary:hover { box-shadow: 0 0 28px rgba(245,230,66,.45); }
+  .btn-coral { background: var(--coral); color: #fff; }
+  .btn-coral:hover { box-shadow: 0 0 28px rgba(255,77,109,.45); }
+  .btn-ghost { background: transparent; border: 1px solid #2a3a55; color: var(--white); }
+  .btn-ghost:hover { border-color: var(--yellow); color: var(--yellow); }
+  .btn-green { background: var(--green); color: var(--navy); }
+  .btn-green:hover { box-shadow: 0 0 28px rgba(0,229,160,.4); }
+  .btn-full { width: 100%; }
+  .btn-lg { padding: 18px 36px; font-size: 18px; }
+
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; gap: 12px; }
+  .label { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+  /* PLAYER LIST */
+  .player-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .player-item { display: flex; align-items: center; gap: 10px; background: var(--navy3); border-radius: 8px; padding: 10px 14px; font-weight: 600; }
+  .player-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .player-score { margin-left: auto; font-family: 'JetBrains Mono', monospace; color: var(--yellow); }
+
+  /* SCOREBOARD */
+  .scoreboard { width: 100%; max-width: 600px; }
+  .score-row { display: flex; align-items: center; gap: 16px; padding: 14px 20px; background: var(--card); border-radius: 10px; margin-bottom: 8px; border: 1px solid #1e2d45; }
+  .score-rank { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--muted); width: 32px; }
+  .score-rank.gold { color: var(--yellow); }
+  .score-rank.silver { color: #ccc; }
+  .score-rank.bronze { color: #cd7f32; }
+  .score-name { font-weight: 700; flex: 1; }
+  .score-pts { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 600; color: var(--green); }
+
+  /* GAME SCREEN */
+  #game-screen { background: var(--navy); }
+
+  .game-header { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 900px; padding: 0 0 24px 0; }
+  .game-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; }
+  .game-meta { display: flex; gap: 16px; align-items: center; }
+  .round-badge { background: var(--navy3); border-radius: 8px; padding: 6px 14px; font-size: 13px; color: var(--muted); font-weight: 600; }
+
+  /* TIMER */
+  .timer-ring-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+  .timer-text { position: absolute; font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 600; color: var(--white); }
+  .timer-ring-wrap svg { transform: rotate(-90deg); }
+  .timer-bg { fill: none; stroke: var(--navy3); stroke-width: 6; }
+  .timer-arc { fill: none; stroke: var(--yellow); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .9s linear, stroke .5s; }
+
+  /* QUESTION CARD */
+  .q-card { width: 100%; max-width: 900px; background: var(--card); border-radius: 20px; border: 1px solid var(--navy3); padding: 40px; }
+  .q-category { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--coral); font-weight: 700; margin-bottom: 12px; }
+  .q-text { font-size: clamp(22px, 3.5vw, 34px); font-weight: 700; line-height: 1.3; color: var(--white); margin-bottom: 32px; }
+
+  /* OPTIONS GRID */
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .opt-btn { background: var(--navy3); border: 2px solid #2a3a55; border-radius: 12px; padding: 18px 20px; text-align: left; font-size: 16px; font-weight: 600; color: var(--white); cursor: pointer; transition: all .15s; font-family: 'Inter', sans-serif; }
+  .opt-btn:hover:not(:disabled) { border-color: var(--yellow); color: var(--yellow); background: rgba(245,230,66,.05); }
+  .opt-btn.correct { border-color: var(--green) !important; background: rgba(0,229,160,.1) !important; color: var(--green) !important; }
+  .opt-btn.wrong { border-color: var(--coral) !important; background: rgba(255,77,109,.1) !important; color: var(--coral) !important; }
+  .opt-btn:disabled { cursor: not-allowed; opacity: .7; }
+
+  /* TEXT INPUT GAME */
+  .answer-row { display: flex; gap: 10px; }
+  .answer-row input { flex: 1; }
+
+  /* BUZZ IN */
+  .buzz-section { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 20px; }
+  .buzz-btn { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 3px; padding: 22px 60px; border-radius: 16px; background: var(--coral); color: #fff; border: none; cursor: pointer; transition: transform .1s, box-shadow .2s; box-shadow: 0 6px 0 #a01830; }
+  .buzz-btn:hover { box-shadow: 0 8px 0 #a01830; transform: translateY(-2px); }
+  .buzz-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #a01830; }
+  .buzz-who { font-size: 22px; font-weight: 700; color: var(--yellow); }
+
+  /* FEEDBACK OVERLAY */
+  .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .overlay-inner { font-family: 'Bebas Neue', sans-serif; font-size: clamp(60px, 14vw, 140px); letter-spacing: 6px; animation: popIn .4s cubic-bezier(.175,.885,.32,1.275); }
+  @keyframes popIn { from { transform: scale(.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .overlay-correct { color: var(--green); text-shadow: 0 0 60px rgba(0,229,160,.6); }
+  .overlay-wrong { color: var(--coral); text-shadow: 0 0 60px rgba(255,77,109,.6); }
+  .overlay-timeout { color: var(--yellow); text-shadow: 0 0 60px rgba(245,230,66,.6); }
+
+  /* FASTEST FINGER */
+  .ff-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 12px; }
+  .ff-opt { padding: 20px; background: var(--navy3); border: 2px solid #2a3a55; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: 700; transition: all .15s; text-align: center; }
+  .ff-opt:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+
+  /* REACTION GAME */
+  .reaction-target { width: 160px; height: 160px; border-radius: 50%; background: var(--navy3); border: 4px solid #2a3a55; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 48px; transition: all .15s; margin: 20px auto; }
+  .reaction-target.go { background: rgba(0,229,160,.15); border-color: var(--green); animation: pulse 0.5s ease-in-out infinite alternate; }
+  @keyframes pulse { from { box-shadow: 0 0 20px rgba(0,229,160,.3); } to { box-shadow: 0 0 50px rgba(0,229,160,.7); } }
+
+  /* MATH GAME */
+  .math-eq { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 8vw, 80px); letter-spacing: 4px; text-align: center; color: var(--yellow); margin-bottom: 16px; }
+
+  /* FLAGS */
+  .flag-display { font-size: 96px; text-align: center; margin: 12px 0 24px; line-height: 1; }
+
+  /* CHAIN GAME */
+  .chain-display { font-size: clamp(18px, 3vw, 26px); font-weight: 700; color: var(--blue); margin-bottom: 20px; word-break: break-all; }
+  .chain-hint { color: var(--muted); font-size: 13px; }
+
+  /* PROGRESS BAR */
+  .progress-bar { height: 4px; background: var(--navy3); border-radius: 2px; overflow: hidden; width: 100%; max-width: 900px; margin-bottom: 24px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--yellow), var(--coral)); border-radius: 2px; transition: width .4s; }
+
+  /* WAITING */
+  .waiting-dots::after { content: ''; animation: dots 1.4s infinite; }
+  @keyframes dots { 0%{content:'.'} 33%{content:'..'} 66%{content:'...'} 100%{content:''} }
+
+  /* GAME PICKER */
+  .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; width: 100%; max-width: 900px; }
+  .game-tile { background: var(--card); border: 1px solid #1e2d45; border-radius: 14px; padding: 20px; cursor: pointer; transition: all .2s; text-align: center; }
+  .game-tile:hover { border-color: var(--yellow); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(245,230,66,.12); }
+  .game-tile .g-icon { font-size: 36px; margin-bottom: 8px; }
+  .game-tile .g-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .game-tile .g-cat { font-size: 11px; color: var(--muted); }
+  .game-tile.selected { border-color: var(--yellow); background: rgba(245,230,66,.06); }
+
+  /* RESULTS */
+  .result-crown { font-size: 72px; margin-bottom: 8px; }
+  .result-winner { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: var(--yellow); }
+
+  /* MISC */
+  .divider { height: 1px; background: #1e2d45; width: 100%; margin: 16px 0; }
+  .center { text-align: center; }
+  .mt8 { margin-top: 8px; }
+  .mt16 { margin-top: 16px; }
+  .mt24 { margin-top: 24px; }
+  .dimmed { color: var(--muted); font-size: 14px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .badge-yellow { background: rgba(245,230,66,.15); color: var(--yellow); }
+  .badge-green { background: rgba(0,229,160,.15); color: var(--green); }
+  .badge-coral { background: rgba(255,77,109,.15); color: var(--coral); }
+
+  #room-code-display { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 12px; color: var(--yellow); background: var(--navy3); border-radius: 12px; padding: 16px 32px; display: inline-block; }
+
+  .answer-reveal { margin-top: 16px; padding: 14px 18px; background: rgba(0,229,160,.08); border: 1px solid var(--green); border-radius: 10px; color: var(--green); font-weight: 600; }
+
+  /* ===== GAME COUNT HINT ===== */
+  .count-hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .count-hint.ok { color: var(--green); }
+  .count-hint.warn { color: var(--coral); }
+
+  /* ===== Q PROGRESS DOTS (within a multi-question round) ===== */
+  .q-progress { display: flex; gap: 6px; margin-bottom: 16px; }
+  .q-dot { width: 22px; height: 6px; border-radius: 3px; background: var(--navy3); transition: background .2s; }
+  .q-dot.done-correct { background: var(--green); }
+  .q-dot.done-wrong { background: var(--coral); }
+  .q-dot.current { background: var(--yellow); }
+
+  /* ===== ADMIN PANEL (host only) ===== */
+  .admin-toggle { position: fixed; bottom: 20px; right: 20px; z-index: 60; background: var(--yellow); color: var(--navy); border: none; border-radius: 50px; padding: 14px 22px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(245,230,66,.35); display: flex; align-items: center; gap: 8px; }
+  .admin-toggle:hover { box-shadow: 0 8px 28px rgba(245,230,66,.5); }
+
+  .admin-panel { position: fixed; top: 0; right: 0; height: 100vh; width: 360px; max-width: 92vw; background: var(--navy2); border-left: 1px solid var(--navy3); z-index: 70; transform: translateX(100%); transition: transform .25s ease; display: flex; flex-direction: column; padding: 24px; overflow-y: auto; }
+  .admin-panel.open { transform: translateX(0); }
+  .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .admin-header h3 { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; color: var(--yellow); }
+  .admin-close { background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; line-height: 1; }
+  .admin-close:hover { color: var(--white); }
+
+  .admin-section { margin-bottom: 24px; }
+  .admin-section-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 10px; }
+
+  .admin-lb-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--card); border-radius: 8px; margin-bottom: 6px; font-size: 14px; }
+  .admin-lb-rank { font-family: 'JetBrains Mono', monospace; color: var(--muted); width: 18px; }
+  .admin-lb-name { flex: 1; font-weight: 600; }
+  .admin-lb-score { font-family: 'JetBrains Mono', monospace; color: var(--green); }
+
+  .admin-queue-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--card); border-radius: 8px; margin-bottom: 6px; font-size: 13px; border: 1px solid transparent; }
+  .admin-queue-item.active { border-color: var(--yellow); background: rgba(245,230,66,.06); }
+  .admin-queue-item.played { opacity: .5; }
+  .admin-queue-icon { font-size: 18px; }
+  .admin-queue-name { flex: 1; }
+  .admin-queue-replay { background: var(--navy3); border: none; color: var(--muted); border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer; }
+  .admin-queue-replay:hover { color: var(--yellow); }
+
+  .admin-actions { display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding-top: 20px; border-top: 1px solid var(--navy3); }
+
+  .host-badge { display: inline-block; background: rgba(245,230,66,.15); color: var(--yellow); font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 3px 8px; border-radius: 6px; margin-left: 8px; vertical-align: middle; }
+
+  .waiting-next { text-align: center; padding: 60px 20px; }
+  .waiting-next .big-icon { font-size: 56px; margin-bottom: 16px; }
+
+  @media (max-width: 600px) {
+    .options-grid { grid-template-columns: 1fr; }
+    .game-grid { grid-template-columns: 1fr 1fr; }
+    .q-card { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== WELCOME ===== -->
+  <div id="welcome-screen" class="screen active">
+    <div class="logo">BLITZ</div>
+    <div class="tagline">Minute to Win It — Group Edition</div>
+    <div class="card">
+      <div class="stack">
+        <div>
+          <div class="label">Your Name</div>
+          <input type="text" id="player-name" placeholder="Enter your name" maxlength="20">
+        </div>
+        <div class="row">
+          <button class="btn btn-primary btn-full" onclick="showHostSetup()">🎮 Host Game</button>
+          <button class="btn btn-ghost btn-full" onclick="showJoin()">🔗 Join Game</button>
+        </div>
+      </div>
+    </div>
+    <div class="dimmed mt16">Works on the same browser or network tab — share your Room Code!</div>
+  </div>
+
+  <!-- ===== HOST SETUP ===== -->
+  <div id="host-setup-screen" class="screen">
+    <div class="logo" style="font-size:48px">GAME SETUP</div>
+    <div class="card mt16" style="max-width:700px">
+      <h2>Pick Your Games (choose any)</h2>
+      <div id="game-picker-grid" class="game-grid"></div>
+      <div class="divider"></div>
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <div>
+          <div class="dimmed" id="selected-count">0 games selected</div>
+          <div class="count-hint" id="count-hint">Pick 10–15 games for a solid 20–30 min session</div>
+        </div>
+        <div class="row">
+          <button class="btn btn-ghost" onclick="showWelcome()">Back</button>
+          <button class="btn btn-primary" onclick="startLobby()">Create Room →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== JOIN ===== -->
+  <div id="join-screen" class="screen">
+    <div class="logo" style="font-size:48px">JOIN GAME</div>
+    <div class="card mt16">
+      <div class="stack">
+        <div>
+          <div class="label">Room Code</div>
+          <input type="text" id="join-code" placeholder="e.g. TIGER42" maxlength="8" style="text-transform:uppercase;letter-spacing:4px;font-family:'Bebas Neue';font-size:28px">
+        </div>
+        <div class="row">
+          <button class="btn btn-ghost" onclick="showWelcome()">Back</button>
+          <button class="btn btn-primary btn-full" onclick="joinRoom()">Join →</button>
+        </div>
+        <div id="join-error" class="dimmed" style="color:var(--coral);display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LOBBY ===== -->
+  <div id="lobby-screen" class="screen">
+    <div class="logo" style="font-size:48px">LOBBY</div>
+    <div class="center mt16 mb8">
+      <div class="label">Room Code</div>
+      <div id="room-code-display">—</div>
+      <div class="dimmed mt8">Share this code with your friends!</div>
+    </div>
+    <div class="card mt16" style="max-width:500px">
+      <h2>Players</h2>
+      <ul class="player-list" id="lobby-player-list"></ul>
+      <div class="divider"></div>
+      <div id="lobby-host-controls"></div>
+      <div id="lobby-waiting" class="dimmed center" style="display:none">Waiting for host to start<span class="waiting-dots"></span></div>
+    </div>
+  </div>
+
+  <!-- ===== GAME ===== -->
+  <div id="game-screen" class="screen" style="min-height:100vh;padding:24px 16px;justify-content:flex-start;align-items:center;">
+    <div class="game-header">
+      <div>
+        <div class="game-title" id="gm-title">—</div>
+        <div class="dimmed" id="gm-category"></div>
+      </div>
+      <div class="game-meta">
+        <div class="round-badge" id="gm-round">Round 1/10</div>
+        <div class="timer-ring-wrap">
+          <svg width="70" height="70">
+            <circle class="timer-bg" cx="35" cy="35" r="28"></circle>
+            <circle class="timer-arc" id="timer-arc" cx="35" cy="35" r="28" stroke-dasharray="176" stroke-dashoffset="0"></circle>
+          </svg>
+          <div class="timer-text" id="timer-text">60</div>
+        </div>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="game-progress"></div></div>
+    <div class="q-card" id="q-card">
+      <div class="q-progress" id="q-progress-dots"></div>
+      <div class="q-category" id="q-category">Loading</div>
+      <div class="q-text" id="q-text">Loading question…</div>
+      <div id="q-body"></div>
+    </div>
+    <div id="game-scorebar" style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;justify-content:center;width:100%;max-width:900px"></div>
+    <button class="btn btn-primary btn-lg mt24" id="host-next-q-btn" onclick="hostAdvanceQuestion()" style="display:none">Next Question →</button>
+  </div>
+
+  <!-- ===== ADMIN PANEL (host only, visible during game) ===== -->
+  <button class="admin-toggle" id="admin-toggle-btn" onclick="toggleAdminPanel()" style="display:none">👑 Admin</button>
+  <div class="admin-panel" id="admin-panel">
+    <div class="admin-header">
+      <h3>Admin Panel</h3>
+      <button class="admin-close" onclick="toggleAdminPanel()">✕</button>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">Live Leaderboard</div>
+      <div id="admin-leaderboard"></div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">Game Queue</div>
+      <div id="admin-queue"></div>
+    </div>
+
+    <div class="admin-actions">
+      <button class="btn btn-coral btn-full" id="admin-replay-btn" onclick="adminReplayCurrent()">🔁 Replay This Game</button>
+      <button class="btn btn-primary btn-full" id="admin-next-btn" onclick="adminNextGame()">▶ Next Game</button>
+      <button class="btn btn-ghost btn-full" onclick="adminEndGame()">⏹ End & Show Results</button>
+    </div>
+  </div>
+
+  <!-- ===== RESULTS ===== -->
+  <div id="results-screen" class="screen">
+    <div class="result-crown">🏆</div>
+    <div class="result-winner" id="results-winner">Player One</div>
+    <div class="dimmed">Wins the game!</div>
+    <div class="scoreboard mt24" id="final-scoreboard"></div>
+    <div class="row mt24">
+      <button class="btn btn-primary btn-lg" onclick="playAgain()">Play Again</button>
+      <button class="btn btn-ghost btn-lg" onclick="showWelcome()">Home</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="feedback-overlay" style="display:none;pointer-events:none">
+  <div class="overlay-inner" id="feedback-text"></div>
+</div>
+
+<script>
+// ======================================================
+// STATE
+// ======================================================
+const STATE = {
+  myName: '',
+  myId: '',
+  roomCode: '',
+  isHost: false,
+  players: {},  // id -> {name, score}
+  gameQueue: [],     // array of {id, defId, icon, name, category, type, time, questions:[...]}
+  currentGameIdx: -1,
+  currentQIdx: 0,    // index within the current game's questions[]
+  timerInterval: null,
+  timeLeft: 60,
+  answered: false,
+  buzzedBy: null,
+  channel: null,
+  reactionStart: 0,
+  questionsPerRound: 4, // how many questions per quiz-type game (3-5)
+};
+
+const NO_REPEAT_TYPES = ['reaction','rhyme_chain']; // skill games stay single-attempt
+
+// ======================================================
+// 20+ GAME DEFINITIONS
+// ======================================================
+const GAME_DEFS = [
+  {
+    id: 'flag_quiz',
+    name: 'Flag Frenzy',
+    icon: '🚩',
+    category: 'Geography',
+    desc: 'Name the country from its flag',
+    time: 20,
+    type: 'mcq',
+    generate: () => {
+      const items = SHUFFLE(FLAGS);
+      const q = items[0];
+      const opts = SHUFFLE([q, ...items.slice(1,4)]);
+      return { question: `Which country does this flag belong to?`, flag: q.flag, options: opts.map(o=>o.country), answer: q.country };
+    }
+  },
+  {
+    id: 'capital_quiz',
+    name: 'Capital Cities',
+    icon: '🌍',
+    category: 'Geography',
+    desc: 'Match capitals to countries',
+    time: 20,
+    type: 'mcq',
+    generate: () => {
+      const items = SHUFFLE(CAPITALS);
+      const q = items[0];
+      const opts = SHUFFLE([q.capital, ...items.slice(1,4).map(c=>c.capital)]);
+      return { question: `What is the capital of ${q.country}?`, options: opts, answer: q.capital };
+    }
+  },
+  {
+    id: 'fast_math',
+    name: 'Speed Math',
+    icon: '🔢',
+    category: 'Numbers',
+    desc: 'Solve arithmetic fast',
+    time: 15,
+    type: 'mcq',
+    generate: () => {
+      const ops = ['+','-','×'];
+      const op = RAND(ops);
+      let a = RN(2,20), b = RN(2,12), ans;
+      if(op==='+') ans=a+b;
+      else if(op==='-'){a=RN(10,30);b=RN(2,a);ans=a-b;}
+      else{a=RN(2,12);b=RN(2,12);ans=a*b;}
+      const wrongs = new Set();
+      while(wrongs.size<3){const w=ans+RAND([-3,-2,-1,1,2,3,4,-4]);if(w!==ans)wrongs.add(w);}
+      const opts = SHUFFLE([ans,...wrongs]);
+      return { question: `${a} ${op} ${b} = ?`, math: true, options: opts.map(String), answer: String(ans) };
+    }
+  },
+  {
+    id: 'hard_math',
+    name: 'Brain Crunch',
+    icon: '🧮',
+    category: 'Numbers',
+    desc: 'Tougher maths challenges',
+    time: 25,
+    type: 'type',
+    generate: () => {
+      const type = RN(0,3);
+      if(type===0){const a=RN(11,30),b=RN(11,30);return{question:`${a} × ${b} = ?`,answer:String(a*b),math:true};}
+      if(type===1){const a=RN(100,999),b=RN(10,99);return{question:`${a} + ${b} = ?`,answer:String(a+b),math:true};}
+      const a=RN(13,30),b=RN(2,a-1);return{question:`${a} − ${b} = ?`,answer:String(a-b),math:true};
+    }
+  },
+  {
+    id: 'anagram',
+    name: 'Anagram Mania',
+    icon: '🔤',
+    category: 'Word Play',
+    desc: 'Unscramble the letters',
+    time: 25,
+    type: 'type',
+    generate: () => {
+      const w = RAND(WORDS);
+      const scrambled = SHUFFLE([...w]).join('').toUpperCase();
+      return { question: `Unscramble: ${scrambled}`, answer: w.toUpperCase(), hint: `${w.length} letters` };
+    }
+  },
+  {
+    id: 'rhyme_time',
+    name: 'Rhyme Time',
+    icon: '🎵',
+    category: 'Word Play',
+    desc: 'Complete the rhyming pair',
+    time: 18,
+    type: 'mcq',
+    generate: () => {
+      const r = RAND(RHYMES);
+      return { question: r.clue, options: SHUFFLE([r.answer, ...r.wrong]), answer: r.answer };
+    }
+  },
+  {
+    id: 'science_q',
+    name: 'Science Lab',
+    icon: '🔬',
+    category: 'High School',
+    desc: 'Chemistry, Physics, Biology',
+    time: 20,
+    type: 'mcq',
+    generate: () => { const q=RAND(SCIENCE); return {...q}; }
+  },
+  {
+    id: 'history_q',
+    name: 'History Blast',
+    icon: '📜',
+    category: 'High School',
+    desc: 'Famous events & figures',
+    time: 20,
+    type: 'mcq',
+    generate: () => { const q=RAND(HISTORY); return {...q}; }
+  },
+  {
+    id: 'idiom_q',
+    name: 'What Does It Mean?',
+    icon: '💬',
+    category: 'Word Play',
+    desc: 'Guess the idiom meaning',
+    time: 20,
+    type: 'mcq',
+    generate: () => { const q=RAND(IDIOMS); return {...q}; }
+  },
+  {
+    id: 'fastest_finger',
+    name: 'Fastest Finger',
+    icon: '⚡',
+    category: 'Reflex',
+    desc: 'First to buzz in wins',
+    time: 10,
+    type: 'buzz',
+    generate: () => { const q=RAND(TRIVIA); return {...q}; }
+  },
+  {
+    id: 'reaction_test',
+    name: 'Reaction Blitz',
+    icon: '🎯',
+    category: 'Reflex',
+    desc: 'Tap when the target turns green',
+    time: 8,
+    type: 'reaction',
+    generate: () => ({ question: 'TAP the circle the moment it turns green!', answer: '' })
+  },
+  {
+    id: 'true_false',
+    name: 'True or False',
+    icon: '✅',
+    category: 'Think & Play',
+    desc: 'Is the statement true or false?',
+    time: 12,
+    type: 'tf',
+    generate: () => { const q=RAND(TRUE_FALSE); return {...q}; }
+  },
+  {
+    id: 'who_am_i',
+    name: 'Who Am I?',
+    icon: '🕵️',
+    category: 'Think & Play',
+    desc: 'Guess the famous person from clues',
+    time: 30,
+    type: 'type',
+    generate: () => { const q=RAND(WHO_AM_I); return {...q}; }
+  },
+  {
+    id: 'odd_one_out',
+    name: 'Odd One Out',
+    icon: '🦄',
+    category: 'Think & Play',
+    desc: 'Spot the one that doesn\'t belong',
+    time: 15,
+    type: 'mcq',
+    generate: () => { const q=RAND(ODD_ONE_OUT); return {...q}; }
+  },
+  {
+    id: 'complete_the_series',
+    name: 'What Comes Next?',
+    icon: '🔗',
+    category: 'Think & Play',
+    desc: 'Complete the number or word series',
+    time: 18,
+    type: 'mcq',
+    generate: () => { const q=RAND(SERIES); return {...q}; }
+  },
+  {
+    id: 'movie_emoji',
+    name: 'Emoji Movie',
+    icon: '🎬',
+    category: 'Pop Culture',
+    desc: 'Guess the movie from emojis',
+    time: 25,
+    type: 'mcq',
+    generate: () => { const q=RAND(EMOJI_MOVIES); return {...q}; }
+  },
+  {
+    id: 'animal_sound',
+    name: 'Animal Kingdom',
+    icon: '🐾',
+    category: 'General',
+    desc: 'Name the animal from clues',
+    time: 15,
+    type: 'mcq',
+    generate: () => { const q=RAND(ANIMALS); return {...q}; }
+  },
+  {
+    id: 'world_records',
+    name: 'World Records',
+    icon: '🌏',
+    category: 'General',
+    desc: 'Biggest, tallest, fastest…',
+    time: 20,
+    type: 'mcq',
+    generate: () => { const q=RAND(WORLD_RECORDS); return {...q}; }
+  },
+  {
+    id: 'sports_q',
+    name: 'Sports Arena',
+    icon: '⚽',
+    category: 'Pop Culture',
+    desc: 'Sports facts & records',
+    time: 20,
+    type: 'mcq',
+    generate: () => { const q=RAND(SPORTS); return {...q}; }
+  },
+  {
+    id: 'fill_blank',
+    name: 'Fill the Blank',
+    icon: '✏️',
+    category: 'Think & Play',
+    desc: 'Complete the famous phrase',
+    time: 20,
+    type: 'mcq',
+    generate: () => { const q=RAND(FILL_BLANK); return {...q}; }
+  },
+  {
+    id: 'body_clocks',
+    name: 'Beat the Clock',
+    icon: '⏱️',
+    category: 'Reflex',
+    desc: 'Type the answer before time runs out — only 5 seconds!',
+    time: 5,
+    type: 'type',
+    generate: () => { const q=RAND(TRIVIA); return{question:q.question,answer:q.options[q.options.indexOf(q.answer)],options:q.options}; }
+  },
+  {
+    id: 'rhym_chain',
+    name: 'Rhyme Chain',
+    icon: '🔁',
+    category: 'Word Play',
+    desc: 'Type a word that rhymes with the given word',
+    time: 12,
+    type: 'rhyme_chain',
+    generate: () => { const w=RAND(['CAT','NIGHT','LOVE','BLUE','SUN','RAIN','TREE','FIRE','MOON','PLAY','BAKE','RING']); return{question:`Type a word that RHYMES with: ${w}`,baseWord:w,answer:''}; }
+  },
+];
+
+// Generate a set of N distinct questions for a quiz-type game.
+// Skill games (reaction, rhyme_chain) always return a single-item set.
+function generateQuestionSet(def, n) {
+  if (NO_REPEAT_TYPES.includes(def.type)) {
+    return [def.generate()];
+  }
+  const set = [];
+  const seen = new Set();
+  let guard = 0;
+  while (set.length < n && guard < n * 12) {
+    guard++;
+    const q = def.generate();
+    const key = q.question;
+    if (!seen.has(key)) {
+      seen.add(key);
+      set.push(q);
+    }
+  }
+  return set;
+}
+
+// ======================================================
+// QUESTION BANKS
+// ======================================================
+const FLAGS = [
+  {flag:'🇧🇷',country:'Brazil'},{flag:'🇯🇵',country:'Japan'},{flag:'🇩🇪',country:'Germany'},
+  {flag:'🇫🇷',country:'France'},{flag:'🇮🇳',country:'India'},{flag:'🇺🇸',country:'United States'},
+  {flag:'🇨🇳',country:'China'},{flag:'🇷🇺',country:'Russia'},{flag:'🇦🇺',country:'Australia'},
+  {flag:'🇰🇷',country:'South Korea'},{flag:'🇮🇹',country:'Italy'},{flag:'🇨🇦',country:'Canada'},
+  {flag:'🇲🇽',country:'Mexico'},{flag:'🇪🇸',country:'Spain'},{flag:'🇧🇬',country:'Bulgaria'},
+  {flag:'🇳🇴',country:'Norway'},{flag:'🇸🇪',country:'Sweden'},{flag:'🇹🇷',country:'Turkey'},
+  {flag:'🇸🇦',country:'Saudi Arabia'},{flag:'🇿🇦',country:'South Africa'},{flag:'🇦🇷',country:'Argentina'},
+  {flag:'🇵🇹',country:'Portugal'},{flag:'🇬🇷',country:'Greece'},{flag:'🇳🇱',country:'Netherlands'},
+];
+
+const CAPITALS = [
+  {country:'Japan',capital:'Tokyo'},{country:'France',capital:'Paris'},
+  {country:'Germany',capital:'Berlin'},{country:'Australia',capital:'Canberra'},
+  {country:'Brazil',capital:'Brasília'},{country:'Canada',capital:'Ottawa'},
+  {country:'India',capital:'New Delhi'},{country:'Italy',capital:'Rome'},
+  {country:'Spain',capital:'Madrid'},{country:'Russia',capital:'Moscow'},
+  {country:'South Korea',capital:'Seoul'},{country:'Mexico',capital:'Mexico City'},
+  {country:'Egypt',capital:'Cairo'},{country:'Argentina',capital:'Buenos Aires'},
+  {country:'Sweden',capital:'Stockholm'},{country:'Norway',capital:'Oslo'},
+  {country:'Switzerland',capital:'Bern'},{country:'Portugal',capital:'Lisbon'},
+  {country:'Netherlands',capital:'Amsterdam'},{country:'Greece',capital:'Athens'},
+];
+
+const SCIENCE = [
+  {question:'What is the chemical symbol for Gold?',options:['Au','Ag','Fe','Gd'],answer:'Au'},
+  {question:'How many bones are in the adult human body?',options:['206','186','226','216'],answer:'206'},
+  {question:'What gas do plants absorb during photosynthesis?',options:['Carbon Dioxide','Oxygen','Nitrogen','Hydrogen'],answer:'Carbon Dioxide'},
+  {question:'What is the speed of light (approx)?',options:['300,000 km/s','150,000 km/s','600,000 km/s','450,000 km/s'],answer:'300,000 km/s'},
+  {question:'Which planet has the most moons?',options:['Saturn','Jupiter','Uranus','Neptune'],answer:'Saturn'},
+  {question:'What is the powerhouse of the cell?',options:['Mitochondria','Nucleus','Ribosome','Golgi apparatus'],answer:'Mitochondria'},
+  {question:'DNA stands for?',options:['Deoxyribonucleic Acid','Dinitrogen Acid','Dipeptide Neutral Acid','Dynamic Nucleic Atom'],answer:'Deoxyribonucleic Acid'},
+  {question:'Which element has atomic number 1?',options:['Hydrogen','Helium','Lithium','Carbon'],answer:'Hydrogen'},
+  {question:'What is Newton\'s First Law about?',options:['Inertia','Gravity','Motion and Force','Energy Conservation'],answer:'Inertia'},
+  {question:'The study of fungi is called?',options:['Mycology','Botany','Zoology','Ecology'],answer:'Mycology'},
+];
+
+const HISTORY = [
+  {question:'Who was the first President of the United States?',options:['George Washington','Abraham Lincoln','Thomas Jefferson','John Adams'],answer:'George Washington'},
+  {question:'In what year did World War II end?',options:['1945','1943','1947','1950'],answer:'1945'},
+  {question:'Which ancient wonder was located in Alexandria?',options:['Lighthouse','Colossus','Hanging Gardens','Pyramids'],answer:'Lighthouse'},
+  {question:'Who discovered America in 1492?',options:['Christopher Columbus','Vasco da Gama','Ferdinand Magellan','Amerigo Vespucci'],answer:'Christopher Columbus'},
+  {question:'The French Revolution began in which year?',options:['1789','1776','1799','1804'],answer:'1789'},
+  {question:'Which empire was ruled by Julius Caesar?',options:['Roman','Greek','Ottoman','Persian'],answer:'Roman'},
+  {question:'The Berlin Wall fell in which year?',options:['1989','1991','1985','1993'],answer:'1989'},
+  {question:'Who wrote the Communist Manifesto?',options:['Karl Marx','Vladimir Lenin','Friedrich Engels','Leon Trotsky'],answer:'Karl Marx'},
+  {question:'Which country first landed on the Moon?',options:['USA','USSR','UK','China'],answer:'USA'},
+  {question:'The Magna Carta was signed in which year?',options:['1215','1066','1415','1492'],answer:'1215'},
+];
+
+const IDIOMS = [
+  {question:'What does "Break the ice" mean?',options:['Make people feel comfortable','Destroy something frozen','Start a fight','Win a competition'],answer:'Make people feel comfortable'},
+  {question:'What does "Hit the sack" mean?',options:['Go to sleep','Punch a bag','Leave quickly','Start cooking'],answer:'Go to sleep'},
+  {question:'"Bite the bullet" means?',options:['Endure a painful situation','Eat fast food','Get shot','Argue with someone'],answer:'Endure a painful situation'},
+  {question:'"Costs an arm and a leg" means?',options:['Very expensive','Painful injury','Long journey','Hard work'],answer:'Very expensive'},
+  {question:'"Under the weather" means?',options:['Feeling ill','Outdoors','Worried','Hiding'],answer:'Feeling ill'},
+  {question:'"Spill the beans" means?',options:['Reveal a secret','Make a mess','Cook badly','Be clumsy'],answer:'Reveal a secret'},
+  {question:'"Kick the bucket" means?',options:['Die','Leave angrily','Start something','Fail a task'],answer:'Die'},
+  {question:'"On the ball" means?',options:['Alert and efficient','Playing sport','Being lucky','Confused'],answer:'Alert and efficient'},
+];
+
+const TRIVIA = [
+  {question:'How many sides does a hexagon have?',options:['6','5','7','8'],answer:'6'},
+  {question:'What is the largest ocean?',options:['Pacific','Atlantic','Indian','Arctic'],answer:'Pacific'},
+  {question:'Who painted the Mona Lisa?',options:['Leonardo da Vinci','Michelangelo','Raphael','Picasso'],answer:'Leonardo da Vinci'},
+  {question:'Mount Everest is in which mountain range?',options:['Himalayas','Andes','Alps','Rockies'],answer:'Himalayas'},
+  {question:'What language has the most native speakers?',options:['Mandarin Chinese','English','Spanish','Hindi'],answer:'Mandarin Chinese'},
+  {question:'What is the smallest country in the world?',options:['Vatican City','Monaco','San Marino','Nauru'],answer:'Vatican City'},
+  {question:'How many strings does a standard guitar have?',options:['6','4','5','8'],answer:'6'},
+  {question:'What is the chemical symbol for water?',options:['H2O','CO2','NaCl','O2'],answer:'H2O'},
+  {question:'The Great Wall of China was built to protect against which people?',options:['Mongols','Persians','Romans','Vikings'],answer:'Mongols'},
+  {question:'Shakespeare was born in which city?',options:['Stratford-upon-Avon','London','Oxford','Cambridge'],answer:'Stratford-upon-Avon'},
+];
+
+const TRUE_FALSE = [
+  {question:'The Great Wall of China is visible from space with the naked eye.',options:['True','False'],answer:'False'},
+  {question:'Bats are blind.',options:['True','False'],answer:'False'},
+  {question:'Goldfish have a memory of only 3 seconds.',options:['True','False'],answer:'False'},
+  {question:'Lightning never strikes the same place twice.',options:['True','False'],answer:'False'},
+  {question:'The Sahara is the largest hot desert in the world.',options:['True','False'],answer:'True'},
+  {question:'Humans and dinosaurs coexisted on Earth.',options:['True','False'],answer:'False'},
+  {question:'Mount Everest is the tallest mountain on Earth.',options:['True','False'],answer:'True'},
+  {question:'Adult humans have 32 teeth.',options:['True','False'],answer:'True'},
+  {question:'The heart is on the left side of the chest.',options:['True','False'],answer:'True'},
+  {question:'Pluto is classified as a planet.',options:['True','False'],answer:'False'},
+];
+
+const WHO_AM_I = [
+  {question:'I was a theoretical physicist who developed the theory of relativity. I was born in Germany and later lived in the USA. Who am I?',answer:'EINSTEIN',hint:'Last name only'},
+  {question:'I am a British nurse known as "the lady with the lamp." I reformed healthcare during the Crimean War. Who am I?',answer:'NIGHTINGALE'},
+  {question:'I am a scientist who discovered penicillin accidentally in 1928. Who am I?',answer:'FLEMING'},
+  {question:'I led India to independence through non-violent civil disobedience. Who am I?',answer:'GANDHI'},
+  {question:'I painted the Sistine Chapel ceiling. I am Italian and also a sculptor. Who am I?',answer:'MICHELANGELO'},
+  {question:'I was the first woman to win a Nobel Prize — actually I won two! Who am I?',answer:'CURIE'},
+  {question:'I wrote "Romeo and Juliet" and "Hamlet." I was born in 1564. Who am I?',answer:'SHAKESPEARE'},
+  {question:'I am an American civil rights leader who gave the "I Have a Dream" speech. Who am I?',answer:'KING'},
+];
+
+const ODD_ONE_OUT = [
+  {question:'Which one does NOT belong?',options:['Apple','Banana','Carrot','Grape'],answer:'Carrot',explanation:'It\'s a vegetable, not a fruit'},
+  {question:'Which is NOT a planet in our solar system?',options:['Mars','Venus','Pluto','Saturn'],answer:'Pluto',explanation:'Pluto is a dwarf planet'},
+  {question:'Which is NOT a primary colour (light)?',options:['Red','Blue','Yellow','Green'],answer:'Yellow',explanation:'Primary colours of light are Red, Green, Blue'},
+  {question:'Which is NOT a mammal?',options:['Whale','Bat','Eagle','Dolphin'],answer:'Eagle',explanation:'Eagles are birds'},
+  {question:'Which does NOT belong?',options:['Violin','Cello','Flute','Viola'],answer:'Flute',explanation:'Flute is a wind instrument; others are strings'},
+  {question:'Which is NOT a continent?',options:['Africa','Europe','Greenland','Asia'],answer:'Greenland',explanation:'Greenland is an island'},
+  {question:'Which is NOT a prime number?',options:['7','11','9','13'],answer:'9',explanation:'9 = 3×3'},
+  {question:'Which is NOT a European country?',options:['Norway','Turkey','Morocco','Greece'],answer:'Morocco',explanation:'Morocco is in Africa'},
+];
+
+const SERIES = [
+  {question:'What comes next? 2, 4, 8, 16, __',options:['32','24','28','36'],answer:'32'},
+  {question:'What comes next? 1, 1, 2, 3, 5, __',options:['8','7','10','6'],answer:'8'},
+  {question:'Complete: Monday, Wednesday, __, Sunday',options:['Friday','Thursday','Saturday','Tuesday'],answer:'Friday'},
+  {question:'What comes next? 100, 81, 64, 49, __',options:['36','40','25','32'],answer:'36'},
+  {question:'What comes next? J, F, M, A, M, J, __',options:['J','A','S','O'],answer:'J'},
+  {question:'What comes next? 3, 6, 9, 12, __',options:['15','16','14','18'],answer:'15'},
+  {question:'Complete: A, C, E, G, __',options:['I','H','J','K'],answer:'I'},
+  {question:'What comes next? 1, 4, 9, 16, 25, __',options:['36','30','32','49'],answer:'36'},
+];
+
+const EMOJI_MOVIES = [
+  {question:'🦁👑',options:['The Lion King','Aladdin','Brave','Jungle Book'],answer:'The Lion King'},
+  {question:'🕷️🧑',options:['Spider-Man','Ant-Man','Batman','Black Panther'],answer:'Spider-Man'},
+  {question:'🧊❄️👸',options:['Frozen','Snow White','Cinderella','Enchanted'],answer:'Frozen'},
+  {question:'🐟🔵💙',options:['Finding Nemo','Finding Dory','Shark Tale','The Little Mermaid'],answer:'Finding Dory'},
+  {question:'🚀🤠🐍',options:['Toy Story','Monsters Inc','Cars','A Bug\'s Life'],answer:'Toy Story'},
+  {question:'⚫🔵🌀💥',options:['Interstellar','Inception','Gravity','The Matrix'],answer:'Inception'},
+  {question:'🧙‍♂️💍🔥',options:['Lord of the Rings','Harry Potter','Narnia','The Hobbit'],answer:'Lord of the Rings'},
+  {question:'🦈🌊😱',options:['Jaws','The Meg','Deep Blue Sea','Orca'],answer:'Jaws'},
+];
+
+const ANIMALS = [
+  {question:'I am the fastest land animal. Who am I?',options:['Cheetah','Lion','Leopard','Greyhound'],answer:'Cheetah'},
+  {question:'I am the largest mammal on Earth. Who am I?',options:['Blue Whale','Elephant','Giraffe','Hippo'],answer:'Blue Whale'},
+  {question:'I am a bird that cannot fly but can run at 70 km/h. Who am I?',options:['Ostrich','Penguin','Emu','Kiwi'],answer:'Ostrich'},
+  {question:'I am a mammal that lays eggs. Who am I?',options:['Platypus','Bat','Koala','Wombat'],answer:'Platypus'},
+  {question:'I have the longest gestation period of any land animal (22 months). Who am I?',options:['Elephant','Giraffe','Rhino','Hippo'],answer:'Elephant'},
+  {question:'I am a black and white bear that eats bamboo. Who am I?',options:['Giant Panda','Polar Bear','Spectacled Bear','Sun Bear'],answer:'Giant Panda'},
+  {question:'I am the only mammal capable of sustained flight. Who am I?',options:['Bat','Flying Squirrel','Sugar Glider','Flying Fox'],answer:'Bat'},
+];
+
+const WORLD_RECORDS = [
+  {question:'What is the tallest building in the world (2024)?',options:['Burj Khalifa','Shanghai Tower','Abraj Al-Bait','Taipei 101'],answer:'Burj Khalifa'},
+  {question:'What is the longest river in the world?',options:['Nile','Amazon','Yangtze','Mississippi'],answer:'Nile'},
+  {question:'Which country has the largest population?',options:['India','China','USA','Indonesia'],answer:'India'},
+  {question:'What is the deepest lake in the world?',options:['Lake Baikal','Caspian Sea','Lake Superior','Lake Tanganyika'],answer:'Lake Baikal'},
+  {question:'What is the hottest continent on Earth?',options:['Africa','Asia','Australia','South America'],answer:'Africa'},
+  {question:'Which country has won the most FIFA World Cups?',options:['Brazil','Germany','Italy','Argentina'],answer:'Brazil'},
+  {question:'What is the most spoken language in the world by total speakers?',options:['English','Mandarin','Spanish','Hindi'],answer:'English'},
+];
+
+const SPORTS = [
+  {question:'How many players are on a basketball team on the court?',options:['5','6','4','7'],answer:'5'},
+  {question:'In which sport do you score a "hat-trick"?',options:['Football / Soccer','Cricket','Rugby','Basketball'],answer:'Football / Soccer'},
+  {question:'How long is a standard marathon?',options:['42.195 km','40 km','45 km','26 km'],answer:'42.195 km'},
+  {question:'Which country invented the sport of cricket?',options:['England','Australia','India','South Africa'],answer:'England'},
+  {question:'How many events are in a decathlon?',options:['10','8','12','7'],answer:'10'},
+  {question:'In tennis, what is the term for a score of 40-40?',options:['Deuce','Advantage','Set point','Tie'],answer:'Deuce'},
+  {question:'How many gold medals did Usain Bolt win in his Olympic career?',options:['8','6','10','7'],answer:'8'},
+];
+
+const FILL_BLANK = [
+  {question:'"To be or not to be, that is the ___"',options:['question','answer','choice','problem'],answer:'question'},
+  {question:'"I have a ___" — Martin Luther King Jr.',options:['dream','plan','vision','voice'],answer:'dream'},
+  {question:'"Elementary, my dear ___" — Sherlock Holmes',options:['Watson','Holmes','Moriarty','Hudson'],answer:'Watson'},
+  {question:'"May the ___ be with you" — Star Wars',options:['Force','Light','Power','Jedi'],answer:'Force'},
+  {question:'"Houston, we have a ___"',options:['problem','situation','crisis','launch'],answer:'problem'},
+  {question:'"Just do ___" — Nike slogan',options:['it','this','more','better'],answer:'it'},
+  {question:'"All that glitters is not ___"',options:['gold','silver','diamond','bright'],answer:'gold'},
+  {question:'"The customer is always ___"',options:['right','first','king','correct'],answer:'right'},
+];
+
+const RHYMES = [
+  {clue:'Name a word that rhymes with BLUE and means something you wear on your foot.',answer:'Shoe',wrong:['Glue','True','Few']},
+  {clue:'Rhymes with NIGHT and means the opposite of wrong.',answer:'Right',wrong:['Might','Tight','Bite']},
+  {clue:'Rhymes with RAIN and is felt when you are hurt.',answer:'Pain',wrong:['Gain','Vain','Train']},
+  {clue:'Rhymes with BOOK and is something you can do with your eyes.',answer:'Look',wrong:['Cook','Hook','Took']},
+  {clue:'Rhymes with TREE and means to be without cost.',answer:'Free',wrong:['See','Bee','Key']},
+  {clue:'Rhymes with STAR and means going very far.',answer:'Far',wrong:['Bar','Car','Jar']},
+];
+
+const WORDS = ['PYTHON','GARDEN','PURPLE','BRIDGE','TRAVEL','JUNGLE','FROZEN','BRANCH','CLEVER','PLANET','MIRROR','CASTLE','FINGER','WINDOW','STREAM','FLIGHT','SPRING','MARBLE','SILVER','FLOWER'];
+
+// ======================================================
+// UTILITY
+// ======================================================
+function RAND(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+function RN(a,b) { return Math.floor(Math.random()*(b-a+1))+a; }
+function SHUFFLE(arr) { const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function genId() { return Math.random().toString(36).slice(2,10); }
+function genCode() { const words=['TIGER','BLAZE','NOVA','STORM','PIXEL','HYPER','TURBO','FLASH','RAPID','SONIC']; return RAND(words)+String(RN(10,99)); }
+
+// ======================================================
+// BROADCAST CHANNEL (local network = same-origin tabs)
+// ======================================================
+function initChannel(code) {
+  if(STATE.channel) STATE.channel.close();
+  STATE.channel = new BroadcastChannel('blitz_' + code);
+  STATE.channel.onmessage = onMessage;
+}
+
+function broadcast(type, data={}) {
+  if(!STATE.channel) return;
+  STATE.channel.postMessage({ type, from: STATE.myId, name: STATE.myName, data });
+}
+
+function onMessage(e) {
+  const {type, from, name, data} = e.data;
+  switch(type) {
+    case 'JOIN':
+      if(STATE.isHost) {
+        STATE.players[from] = { name, score: 0 };
+        broadcast('PLAYER_LIST', { players: STATE.players, gameQueue: STATE.gameQueue });
+        updateLobbyUI();
+      }
+      break;
+    case 'PLAYER_LIST':
+      STATE.players = data.players;
+      if(data.gameQueue) STATE.gameQueue = data.gameQueue;
+      updateLobbyUI();
+      break;
+    case 'START_GAME':
+      STATE.gameQueue = data.gameQueue;
+      STATE.currentGameIdx = 0;
+      STATE.currentQIdx = 0;
+      showScreen('game-screen');
+      loadQuestion();
+      renderAdminPanel();
+      break;
+    case 'LOAD_QUESTION':
+      STATE.currentGameIdx = data.gameIdx;
+      STATE.currentQIdx = data.qIdx;
+      clearTimer();
+      STATE.answered = false;
+      STATE.buzzedBy = null;
+      hideHostQuestionControls();
+      renderQuestionUI();
+      renderAdminPanel();
+      break;
+    case 'WAITING_FOR_HOST':
+      showWaitingForHost(data.message);
+      break;
+    case 'ANSWER_CORRECT':
+      if(STATE.players[from]) STATE.players[from].score = (STATE.players[from].score||0) + data.points;
+      if(from === STATE.myId) showFeedback('CORRECT!','correct');
+      updateScorebar();
+      renderAdminPanel();
+      break;
+    case 'ANSWER_WRONG':
+      if(from === STATE.myId) showFeedback('WRONG!','wrong');
+      break;
+    case 'BUZZ_IN':
+      if(!STATE.buzzedBy) { STATE.buzzedBy = from; showBuzzed(name); }
+      break;
+    case 'REACTION_SCORE':
+      if(STATE.players[from]) STATE.players[from].score = (STATE.players[from].score||0) + data.points;
+      updateScorebar();
+      renderAdminPanel();
+      break;
+    case 'TIMEOUT':
+      clearTimer();
+      showFeedback('TIME!','timeout');
+      break;
+    case 'GAME_OVER':
+      showResults();
+      break;
+  }
+}
+
+// ======================================================
+// SCREENS
+// ======================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showWelcome() { showScreen('welcome-screen'); }
+function showJoin() { showScreen('join-screen'); }
+
+function showHostSetup() {
+  const name = document.getElementById('player-name').value.trim();
+  if(!name){ alert('Enter your name first!'); return; }
+  STATE.myName = name;
+  STATE.myId = genId();
+  buildGamePicker();
+  showScreen('host-setup-screen');
+}
+
+function buildGamePicker() {
+  const grid = document.getElementById('game-picker-grid');
+  grid.innerHTML = '';
+  STATE.pickedGameIds = STATE.pickedGameIds || [];
+  GAME_DEFS.forEach(g => {
+    const tile = document.createElement('div');
+    tile.className = 'game-tile';
+    tile.innerHTML = `<div class="g-icon">${g.icon}</div><div class="g-name">${g.name}</div><div class="g-cat">${g.category}</div>`;
+    tile.onclick = () => {
+      tile.classList.toggle('selected');
+      if(tile.classList.contains('selected')) STATE.pickedGameIds.push(g.id);
+      else STATE.pickedGameIds = STATE.pickedGameIds.filter(x=>x!==g.id);
+      updateCountHint();
+    };
+    grid.appendChild(tile);
+  });
+  STATE.pickedGameIds = [];
+  updateCountHint();
+}
+
+function updateCountHint() {
+  const n = STATE.pickedGameIds.length;
+  document.getElementById('selected-count').textContent = `${n} game${n!==1?'s':''} selected`;
+  const hint = document.getElementById('count-hint');
+  if(n === 0) { hint.textContent = 'Pick 10–15 games for a solid 20–30 min session'; hint.className='count-hint'; }
+  else if(n < 5) { hint.textContent = `${n} picked — consider adding more for a fuller session`; hint.className='count-hint warn'; }
+  else if(n <= 15) { hint.textContent = `${n} picked — great session length`; hint.className='count-hint ok'; }
+  else { hint.textContent = `${n} picked — that's a long session, consider trimming`; hint.className='count-hint warn'; }
+}
+
+function startLobby() {
+  if(!STATE.pickedGameIds || STATE.pickedGameIds.length === 0) { alert('Select at least one game!'); return; }
+  const code = genCode();
+  STATE.roomCode = code;
+  STATE.isHost = true;
+  STATE.players[STATE.myId] = { name: STATE.myName, score: 0 };
+  initChannel(code);
+  showScreen('lobby-screen');
+  document.getElementById('room-code-display').textContent = code;
+  updateLobbyUI();
+}
+
+function joinRoom() {
+  const name = document.getElementById('player-name').value.trim();
+  if(!name){ alert('Enter your name first!'); return; }
+  const code = document.getElementById('join-code').value.trim().toUpperCase();
+  if(!code){ alert('Enter a room code!'); return; }
+  STATE.myName = name;
+  STATE.myId = genId();
+  STATE.roomCode = code;
+  STATE.isHost = false;
+  initChannel(code);
+  broadcast('JOIN');
+  showScreen('lobby-screen');
+  document.getElementById('room-code-display').textContent = code;
+  document.getElementById('lobby-waiting').style.display = 'block';
+  document.getElementById('lobby-host-controls').innerHTML = '';
+}
+
+function updateLobbyUI() {
+  const list = document.getElementById('lobby-player-list');
+  list.innerHTML = '';
+  Object.values(STATE.players).forEach(p => {
+    const li = document.createElement('li');
+    li.className = 'player-item';
+    li.innerHTML = `<span class="player-dot"></span><span>${p.name}</span><span class="player-score">${p.score} pts</span>`;
+    list.appendChild(li);
+  });
+  if(STATE.isHost) {
+    const ctrl = document.getElementById('lobby-host-controls');
+    const count = Object.keys(STATE.players).length;
+    const gcount = STATE.pickedGameIds ? STATE.pickedGameIds.length : 0;
+    ctrl.innerHTML = `<div class="dimmed mb8 mt8">${count} player${count!==1?'s':''} in lobby · ${gcount} games queued</div>
+    <button class="btn btn-primary btn-full btn-lg" onclick="hostStartGame()">▶ Start Game</button>`;
+  }
+}
+
+function hostStartGame() {
+  if(Object.keys(STATE.players).length < 1) { alert('Need players!'); return; }
+  // Build the full game queue, each with a pre-generated set of questions
+  const gameQueue = SHUFFLE(STATE.pickedGameIds).map(id => {
+    const def = GAME_DEFS.find(g=>g.id===id);
+    return {
+      defId: id,
+      icon: def.icon,
+      name: def.name,
+      category: def.category,
+      type: def.type,
+      time: def.time,
+      questions: generateQuestionSet(def, STATE.questionsPerRound)
+    };
+  });
+  STATE.gameQueue = gameQueue;
+  STATE.currentGameIdx = 0;
+  STATE.currentQIdx = 0;
+  broadcast('START_GAME', { gameQueue });
+  showScreen('game-screen');
+  loadQuestion();
+  document.getElementById('admin-toggle-btn').style.display = 'flex';
+  renderAdminPanel();
+}
+
+// ======================================================
+// GAME ENGINE — host-driven, multi-question rounds
+// ======================================================
+function currentGame() { return STATE.gameQueue[STATE.currentGameIdx]; }
+function currentQuestion() { const g = currentGame(); return g ? g.questions[STATE.currentQIdx] : null; }
+
+// Host loads a question and broadcasts it to everyone (including self)
+function loadQuestion() {
+  STATE.answered = false;
+  STATE.buzzedBy = null;
+  clearTimer();
+  hideHostQuestionControls();
+  if(STATE.isHost) {
+    broadcast('LOAD_QUESTION', { gameIdx: STATE.currentGameIdx, qIdx: STATE.currentQIdx });
+  }
+  renderQuestionUI();
+}
+
+function showHostQuestionControls() {
+  if(!STATE.isHost) return;
+  const game = currentGame();
+  const btn = document.getElementById('host-next-q-btn');
+  if(!game) return;
+  const isLastInSet = STATE.currentQIdx + 1 >= game.questions.length;
+  btn.textContent = isLastInSet ? 'Finish Game →' : 'Next Question →';
+  btn.style.display = 'inline-flex';
+}
+
+function hideHostQuestionControls() {
+  const btn = document.getElementById('host-next-q-btn');
+  if(btn) btn.style.display = 'none';
+}
+
+function renderQuestionUI() {
+  const game = currentGame();
+  const q = currentQuestion();
+  if(!game || !q) return;
+
+  document.getElementById('gm-title').textContent = `${game.icon} ${game.name}`;
+  document.getElementById('gm-category').textContent = game.category;
+  document.getElementById('gm-round').textContent = `Game ${STATE.currentGameIdx+1}/${STATE.gameQueue.length}`;
+  document.getElementById('q-category').textContent = game.category.toUpperCase();
+  document.getElementById('q-text').textContent = q.question;
+  document.getElementById('game-progress').style.width = `${(STATE.currentGameIdx/STATE.gameQueue.length)*100}%`;
+
+  // Question progress dots (only meaningful for multi-question rounds)
+  const dotsWrap = document.getElementById('q-progress-dots');
+  dotsWrap.innerHTML = '';
+  if(game.questions.length > 1) {
+    game.questions.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'q-dot' + (i === STATE.currentQIdx ? ' current' : i < STATE.currentQIdx ? ' done-correct' : '');
+      dotsWrap.appendChild(d);
+    });
+  }
+
+  const body = document.getElementById('q-body');
+  body.innerHTML = '';
+
+  if(q.flag) {
+    const fd = document.createElement('div');
+    fd.className = 'flag-display';
+    fd.textContent = q.flag;
+    body.appendChild(fd);
+  }
+  if(q.math) {
+    const me = document.createElement('div');
+    me.className = 'math-eq';
+    me.textContent = q.question;
+    document.getElementById('q-text').textContent = '';
+    body.insertBefore(me, body.firstChild);
+  }
+
+  switch(game.type) {
+    case 'mcq': renderMCQ(body, q); break;
+    case 'tf': renderMCQ(body, q); break;
+    case 'type': renderType(body, q); break;
+    case 'buzz': renderBuzz(body, q); break;
+    case 'reaction': renderReaction(body, q); break;
+    case 'rhyme_chain': renderType(body, q); break;
+  }
+
+  updateScorebar();
+  startTimer(game.time || 30);
+}
+
+function renderMCQ(body, q) {
+  const grid = document.createElement('div');
+  grid.className = 'options-grid';
+  q.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = opt;
+    btn.onclick = () => submitMCQ(opt, q, grid);
+    grid.appendChild(btn);
+  });
+  body.appendChild(grid);
+}
+
+function submitMCQ(chosen, q, grid) {
+  if(STATE.answered) return;
+  STATE.answered = true;
+  clearTimer();
+  const btns = grid.querySelectorAll('.opt-btn');
+  btns.forEach(b=>{
+    b.disabled=true;
+    if(b.textContent===q.answer) b.classList.add('correct');
+    else if(b.textContent===chosen) b.classList.add('wrong');
+  });
+  if(chosen===q.answer) {
+    const pts = Math.max(10, Math.ceil(STATE.timeLeft*5));
+    if(STATE.players[STATE.myId]) STATE.players[STATE.myId].score = (STATE.players[STATE.myId].score||0)+pts;
+    broadcast('ANSWER_CORRECT',{points:pts});
+    showFeedback('CORRECT!','correct');
+    updateScorebar();
+  } else {
+    broadcast('ANSWER_WRONG');
+    showFeedback('WRONG!','wrong');
+  }
+  if(STATE.isHost) { renderAdminPanel(); showHostQuestionControls(); }
+}
+
+function renderType(body, q) {
+  const row = document.createElement('div');
+  row.className = 'answer-row';
+  const inp = document.createElement('input');
+  inp.type='text'; inp.placeholder='Type your answer…'; inp.id='type-input';
+  inp.style.textTransform='uppercase';
+  const btn = document.createElement('button');
+  btn.className='btn btn-primary';
+  btn.textContent='Submit';
+  row.appendChild(inp); row.appendChild(btn);
+  body.appendChild(row);
+  if(q.hint){
+    const h=document.createElement('div');
+    h.className='dimmed mt8';
+    h.textContent='Hint: '+q.hint;
+    body.appendChild(h);
+  }
+  const submit = ()=>{
+    if(STATE.answered) return;
+    const val = inp.value.trim().toUpperCase();
+    const ans = (q.answer||'').toUpperCase();
+    if(!val) return;
+    let correct = (q.baseWord) ? val.length>1 && val!==q.baseWord : val===ans;
+    STATE.answered=true; clearTimer();
+    if(correct) {
+      const pts=Math.max(10,Math.ceil(STATE.timeLeft*5));
+      if(STATE.players[STATE.myId]) STATE.players[STATE.myId].score=(STATE.players[STATE.myId].score||0)+pts;
+      broadcast('ANSWER_CORRECT',{points:pts});
+      showFeedback('CORRECT!','correct');
+      updateScorebar();
+      if(!q.baseWord) {
+        const rev=document.createElement('div');
+        rev.className='answer-reveal';
+        rev.textContent='✓ '+q.answer;
+        body.appendChild(rev);
+      }
+    } else {
+      broadcast('ANSWER_WRONG');
+      const rev=document.createElement('div');
+      rev.className='answer-reveal';
+      rev.style.borderColor='var(--coral)';
+      rev.style.background='rgba(255,77,109,.08)';
+      rev.style.color='var(--coral)';
+      rev.textContent=`✗ Answer: ${q.answer}`;
+      body.appendChild(rev);
+      showFeedback('WRONG!','wrong');
+    }
+    if(STATE.isHost) { renderAdminPanel(); showHostQuestionControls(); }
+  };
+  btn.onclick=submit;
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
+  setTimeout(()=>inp.focus(),100);
+}
+
+function renderBuzz(body, q) {
+  const sec = document.createElement('div');
+  sec.className='buzz-section';
+  const lbl=document.createElement('div');
+  lbl.className='dimmed';
+  lbl.textContent='First to buzz in answers!';
+  const buzzBtn=document.createElement('button');
+  buzzBtn.className='buzz-btn';
+  buzzBtn.textContent='⚡ BUZZ IN';
+  buzzBtn.onclick=()=>{
+    if(STATE.buzzedBy) return;
+    STATE.buzzedBy=STATE.myId;
+    broadcast('BUZZ_IN');
+    showBuzzed(STATE.myName);
+  };
+  const whoDiv=document.createElement('div');
+  whoDiv.className='buzz-who';
+  whoDiv.id='buzz-who';
+  sec.appendChild(lbl); sec.appendChild(buzzBtn); sec.appendChild(whoDiv);
+  body.appendChild(sec);
+  const optDiv=document.createElement('div');
+  optDiv.className='options-grid mt16'; optDiv.id='buzz-opts'; optDiv.style.display='none';
+  q.options.forEach(opt=>{
+    const btn=document.createElement('button');
+    btn.className='opt-btn'; btn.textContent=opt;
+    btn.onclick=()=>{
+      if(STATE.buzzedBy!==STATE.myId) return;
+      submitMCQ(opt,q,optDiv);
+    };
+    optDiv.appendChild(btn);
+  });
+  body.appendChild(optDiv);
+}
+
+function showBuzzed(name) {
+  const whoDiv=document.getElementById('buzz-who');
+  const optsDiv=document.getElementById('buzz-opts');
+  if(whoDiv) whoDiv.textContent=`${name} buzzed in!`;
+  if(optsDiv) optsDiv.style.display='grid';
+}
+
+function renderReaction(body, q) {
+  const target=document.createElement('div');
+  target.className='reaction-target'; target.textContent='👁️'; target.id='reaction-target';
+  body.appendChild(target);
+  const lbl=document.createElement('div');
+  lbl.className='center dimmed'; lbl.id='reaction-lbl'; lbl.textContent='Wait for it…';
+  body.appendChild(lbl);
+  const delay=RN(1500,4000);
+  let gone=false;
+  const trigger=setTimeout(()=>{
+    target.classList.add('go');
+    target.textContent='🟢';
+    lbl.textContent='TAP NOW!';
+    STATE.reactionStart=Date.now();
+  },delay);
+  target.onclick=()=>{
+    if(gone) return;
+    if(!target.classList.contains('go')) {
+      lbl.textContent='Too early! Wait for green.';
+      target.style.borderColor='var(--coral)';
+      clearTimeout(trigger);
+      gone=true;
+      return;
+    }
+    gone=true;
+    const ms=Date.now()-STATE.reactionStart;
+    const pts=Math.max(5,Math.floor(500-ms/4));
+    lbl.textContent=`⚡ ${ms}ms — ${pts} pts!`;
+    if(STATE.players[STATE.myId]) STATE.players[STATE.myId].score=(STATE.players[STATE.myId].score||0)+pts;
+    broadcast('REACTION_SCORE',{points:pts,ms});
+    updateScorebar();
+    STATE.answered=true;
+    clearTimer();
+    if(STATE.isHost) { renderAdminPanel(); showHostQuestionControls(); }
+  };
+}
+
+// ======================================================
+// TIMER
+// ======================================================
+function startTimer(secs) {
+  STATE.timeLeft = secs;
+  const arc = document.getElementById('timer-arc');
+  const txt = document.getElementById('timer-text');
+  const circ = 2 * Math.PI * 28;
+  arc.style.strokeDasharray = circ;
+  arc.style.strokeDashoffset = 0;
+
+  clearInterval(STATE.timerInterval);
+  STATE.timerInterval = setInterval(()=>{
+    STATE.timeLeft--;
+    txt.textContent = STATE.timeLeft;
+    const offset = circ * (1 - STATE.timeLeft/secs);
+    arc.style.strokeDashoffset = offset;
+    if(STATE.timeLeft <= 5) arc.style.stroke='var(--coral)';
+    else arc.style.stroke='var(--yellow)';
+
+    if(STATE.timeLeft <= 0) {
+      clearInterval(STATE.timerInterval);
+      if(!STATE.answered) {
+        STATE.answered=true;
+        broadcast('TIMEOUT');
+        const q=currentQuestion();
+        if(q && q.answer) {
+          const rev=document.createElement('div');
+          rev.className='answer-reveal';
+          rev.textContent=`⏰ Answer: ${q.answer}`;
+          document.getElementById('q-body').appendChild(rev);
+        }
+        showFeedback('TIME!','timeout');
+        if(STATE.isHost) showHostQuestionControls();
+      }
+    }
+  },1000);
+}
+
+function clearTimer() { clearInterval(STATE.timerInterval); }
+
+// ======================================================
+// HOST ADVANCE LOGIC — moves to next question within a
+// game's set, or to the next game once the set is done.
+// Stops and waits for explicit host action ("Next Game").
+// ======================================================
+function hostAdvanceQuestion() {
+  if(!STATE.isHost) return;
+  const game = currentGame();
+  if(!game) return;
+  if(STATE.currentQIdx + 1 < game.questions.length) {
+    STATE.currentQIdx++;
+    loadQuestion();
+  } else {
+    // Set finished — wait for host to pick next game manually
+    broadcast('WAITING_FOR_HOST', { message: `${game.name} finished! Waiting for host to start the next game…` });
+    showWaitingForHost(`${game.name} finished! Waiting for host to start the next game…`);
+    renderAdminPanel();
+  }
+}
+
+function showWaitingForHost(message) {
+  const body = document.getElementById('q-body');
+  document.getElementById('q-text').textContent = '';
+  document.getElementById('q-progress-dots').innerHTML = '';
+  body.innerHTML = `<div class="waiting-next"><div class="big-icon">⏸️</div><div style="font-weight:700;font-size:18px">${message}</div></div>`;
+}
+
+// ======================================================
+// ADMIN PANEL (host only)
+// ======================================================
+function toggleAdminPanel() {
+  document.getElementById('admin-panel').classList.toggle('open');
+}
+
+function renderAdminPanel() {
+  if(!STATE.isHost) return;
+
+  // Leaderboard
+  const lb = document.getElementById('admin-leaderboard');
+  const sorted = Object.entries(STATE.players).sort((a,b)=>b[1].score-a[1].score);
+  lb.innerHTML = sorted.map(([id,p],i)=>`
+    <div class="admin-lb-row">
+      <span class="admin-lb-rank">${i+1}</span>
+      <span class="admin-lb-name">${p.name}${id===STATE.myId?' <span class="host-badge">HOST</span>':''}</span>
+      <span class="admin-lb-score">${p.score||0}</span>
+    </div>`).join('') || '<div class="dimmed">No players yet</div>';
+
+  // Queue
+  const q = document.getElementById('admin-queue');
+  q.innerHTML = STATE.gameQueue.map((g,i)=>{
+    const isActive = i === STATE.currentGameIdx;
+    const isPast = i < STATE.currentGameIdx;
+    return `
+    <div class="admin-queue-item ${isActive?'active':''} ${isPast?'played':''}">
+      <span class="admin-queue-icon">${g.icon}</span>
+      <span class="admin-queue-name">${g.name}${isActive?' <span class="host-badge">NOW</span>':''}</span>
+      <button class="admin-queue-replay" onclick="adminReplayGame(${i})">${isPast||isActive?'🔁 Replay':''}</button>
+    </div>`;
+  }).join('') || '<div class="dimmed">No games queued</div>';
+
+  // Replay button state
+  document.getElementById('admin-replay-btn').textContent = currentGame() ? `🔁 Replay "${currentGame().name}"` : '🔁 Replay This Game';
+}
+
+function adminNextGame() {
+  if(!STATE.isHost) return;
+  const next = STATE.currentGameIdx + 1;
+  if(next >= STATE.gameQueue.length) { adminEndGame(); return; }
+  STATE.currentGameIdx = next;
+  STATE.currentQIdx = 0;
+  loadQuestion();
+  renderAdminPanel();
+}
+
+function adminReplayCurrent() {
+  if(!STATE.isHost) return;
+  const game = currentGame();
+  if(!game) return;
+  const def = GAME_DEFS.find(g=>g.id===game.defId);
+  game.questions = generateQuestionSet(def, STATE.questionsPerRound);
+  STATE.currentQIdx = 0;
+  loadQuestion();
+  renderAdminPanel();
+}
+
+function adminReplayGame(idx) {
+  if(!STATE.isHost) return;
+  const game = STATE.gameQueue[idx];
+  const def = GAME_DEFS.find(g=>g.id===game.defId);
+  game.questions = generateQuestionSet(def, STATE.questionsPerRound);
+  STATE.currentGameIdx = idx;
+  STATE.currentQIdx = 0;
+  loadQuestion();
+  renderAdminPanel();
+  toggleAdminPanel();
+}
+
+function adminEndGame() {
+  if(!STATE.isHost) return;
+  broadcast('GAME_OVER');
+  showResults();
+}
+
+// ======================================================
+// FEEDBACK
+// ======================================================
+let fbTimer=null;
+function showFeedback(text, cls) {
+  const ov=document.getElementById('feedback-overlay');
+  const tx=document.getElementById('feedback-text');
+  tx.className='overlay-inner overlay-'+cls;
+  tx.textContent=text;
+  ov.style.display='flex';
+  clearTimeout(fbTimer);
+  fbTimer=setTimeout(hideFeedback,1500);
+}
+function hideFeedback() {
+  document.getElementById('feedback-overlay').style.display='none';
+}
+
+// ======================================================
+// SCOREBAR
+// ======================================================
+function updateScorebar() {
+  const bar=document.getElementById('game-scorebar');
+  bar.innerHTML='';
+  const sorted=Object.entries(STATE.players).sort((a,b)=>b[1].score-a[1].score);
+  sorted.forEach(([id,p])=>{
+    const chip=document.createElement('div');
+    chip.style.cssText='background:var(--card);border:1px solid #1e2d45;border-radius:8px;padding:8px 14px;display:flex;gap:10px;align-items:center;';
+    chip.innerHTML=`<span style="font-weight:700;font-size:13px">${p.name}</span><span style="font-family:JetBrains Mono,monospace;color:var(--yellow);font-size:13px">${p.score||0}</span>`;
+    if(id===STATE.myId) chip.style.borderColor='var(--yellow)';
+    bar.appendChild(chip);
+  });
+}
+
+// ======================================================
+// RESULTS
+// ======================================================
+function showResults() {
+  clearTimer();
+  const sorted=Object.entries(STATE.players).sort((a,b)=>b[1].score-a[1].score);
+  const winner=sorted[0];
+  document.getElementById('results-winner').textContent=winner?winner[1].name:'Nobody';
+  const sb=document.getElementById('final-scoreboard');
+  sb.innerHTML='';
+  sorted.forEach(([id,p],i)=>{
+    const row=document.createElement('div');
+    row.className='score-row';
+    const medals=['gold','silver','bronze'];
+    row.innerHTML=`<div class="score-rank ${medals[i]||''}">${i+1}</div><div class="score-name">${p.name}${id===STATE.myId?' <span class="badge badge-yellow">YOU</span>':''}</div><div class="score-pts">${p.score||0} pts</div>`;
+    sb.appendChild(row);
+  });
+  document.getElementById('admin-toggle-btn').style.display = 'none';
+  document.getElementById('admin-panel').classList.remove('open');
+  showScreen('results-screen');
+}
+
+function playAgain() {
+  Object.keys(STATE.players).forEach(id=>STATE.players[id].score=0);
+  if(STATE.isHost) {
+    showScreen('host-setup-screen');
+    buildGamePicker();
+  } else {
+    showScreen('lobby-screen');
+    document.getElementById('lobby-waiting').style.display='block';
+  }
+}
+</script>
+</body>
+</html>
